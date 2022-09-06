@@ -38,6 +38,26 @@ describe("MoonappToken", function () {
       expect(await hardhatToken.totalSupplyLimit()).to.equal(TOTAL_SUPPLY_LIMIT);
     });
   });
+  
+  describe("Mint", function() {
+    it("can be minted by admin only", async function () {
+      const { hardhatToken, owner, addr1} = await loadFixture(deployTokenFixture);
+      await hardhatToken.changeAdmin(addr1.address);
+      
+      await expect(
+        hardhatToken.mint(owner.address, 10)
+      ).to.be.revertedWith("only admin");
+    });
+
+    it("cannot mint more then total supply limit", async function () {
+      const { hardhatToken, owner, addr1} = await loadFixture(deployTokenFixture);
+      
+      await expect(
+        hardhatToken.mint(owner.address, TOTAL_SUPPLY_LIMIT + 10)
+      ).to.be.revertedWith("We are reached the limit in the total supply");
+    });
+
+  });
 
   describe("Transactions", function () {
     it("Should transfer tokens between accounts", async function () {

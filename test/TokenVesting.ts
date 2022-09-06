@@ -4,7 +4,11 @@ import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 
 const TOTAL_SUPPLY_LIMIT = 100000;
 const INITIAL_TOKEN_SUPPLY = 1000;
-const AMOUNT = 100;
+const VESTING_AMOUNT = 150;
+const INITIAL_RELEASE_PERCENTAGE = 10;
+const INITIAL_RELEASE_AMOUNT = VESTING_AMOUNT / 100 * INITIAL_RELEASE_PERCENTAGE;
+const RELEASE_RATE = 15;
+const ONE_MONTH = 60 * 60 * 24 * 30;
 
 describe("TokenVesting", function () {
   async function deployTokenFixture() {
@@ -19,18 +23,27 @@ describe("TokenVesting", function () {
       TOTAL_SUPPLY_LIMIT,
     );
 
-    const start = await time.increase(3600);
-    const cliff = 3600;
-    const duration = await time.increase(3600 * 10);
+    const start = await time.latest();
+    const cliff = ONE_MONTH; // 1 month
+    const vestingPeriod = ONE_MONTH;
+    const beneficiary = addr1.address;
+    const initialVestingBalance = VESTING_AMOUNT - INITIAL_RELEASE_AMOUNT;
 
-    const hardhatVesting = await TokenVesting.deploy(addr1.address, start, cliff, duration);
+    const hardhatVesting = await TokenVesting.deploy(
+      addr1.address, 
+      start, 
+      cliff, 
+      RELEASE_RATE,
+      INITIAL_RELEASE_AMOUNT
+    );
 
     await hardhatToken.deployed();
     await hardhatVesting.deployed();
 
-    await hardhatToken.mint(hardhatVesting.address, AMOUNT);
+    await hardhatToken.mint(beneficiary, INITIAL_RELEASE_AMOUNT);
+    await hardhatToken.mint(hardhatVesting.address, initialVestingBalance);
     
-    return { MoonappToken, hardhatToken, hardhatVesting, owner, addr1, addr2 };
+    return { MoonappToken, hardhatToken, hardhatVesting, owner, cliff, vestingPeriod, start, addr1, addr2, beneficiary, initialVestingBalance };
   }
 
   describe("Deployment", function() {
@@ -40,8 +53,13 @@ describe("TokenVesting", function () {
     });
 
     it("Should mint the right amount", async function () {
-      const { hardhatVesting, hardhatToken } = await loadFixture(deployTokenFixture);
-      expect(await hardhatToken.balanceOf(hardhatVesting.address)).to.equal(AMOUNT);
+      const { hardhatVesting, hardhatToken, initialVestingBalance } = await loadFixture(deployTokenFixture);
+      expect(await hardhatToken.balanceOf(hardhatVesting.address)).to.equal(initialVestingBalance);
+    });
+
+    it("Should set the right initially released amount", async function () {
+      const { hardhatVesting } = await loadFixture(deployTokenFixture);
+      expect(await hardhatVesting.released()).to.equal(INITIAL_RELEASE_AMOUNT);
     });
   });
 
@@ -51,6 +69,50 @@ describe("TokenVesting", function () {
       await expect(
         hardhatVesting.release(hardhatToken.address)
       ).to.be.revertedWith('tokens cannot be released');
+    });
+
+    it('should properly release tokens during vesting period', async function () {
+      const { hardhatVesting, hardhatToken, cliff, start, vestingPeriod, beneficiary } = await loadFixture(deployTokenFixture);
+      
+      const checkpoints = 7;
+
+      for (let i = 0; i < checkpoints; i++) {
+        const now = start + cliff + i * vestingPeriod;
+        await time.increaseTo(now);
+
+        await hardhatVesting.release(hardhatToken.address);
+
+        const balance = await hardhatToken.balanceOf(beneficiary);
+        const expectedVesting = await hardhatToken.balanceOf(beneficiary);
+
+        expect(balance).to.equal(expectedVesting);
+      }
+    });
+
+    it('cannot release more then vesting amount', async function () {
+      const { hardhatVesting, hardhatToken, cliff, start, vestingPeriod, beneficiary } = await loadFixture(deployTokenFixture);
+      
+      const now = start + cliff + vestingPeriod * 10;
+      await time.increaseTo(now);
+
+      await hardhatVesting.release(hardhatToken.address);
+      const balance = await hardhatToken.balanceOf(beneficiary);
+      expect(balance).to.equal(VESTING_AMOUNT);
+    });
+
+    it('should release proper amount after cliff', async function () {
+      const { hardhatVesting, hardhatToken, cliff, start, beneficiary } = await loadFixture(deployTokenFixture);
+      
+      const now = start + cliff;
+      await time.increaseTo(now);
+  
+      await hardhatVesting.release(hardhatToken.address);
+      const releaseTime = await time.latest();
+  
+      const balance = await hardhatToken.balanceOf(beneficiary);
+      const monthsGone = Math.floor((releaseTime - start) / ONE_MONTH);
+
+      expect(balance).to.equal(Math.floor(VESTING_AMOUNT * (RELEASE_RATE * monthsGone) / 100));
     });
   });
 });

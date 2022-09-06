@@ -24,9 +24,10 @@ contract TokenVesting is Ownable {
 
     uint256 public cliff;
     uint256 public start;
-    uint256 public duration;
 
-    mapping(address => uint256) public released;
+    uint256 public releaseRate;
+    uint256 public releasedInitially;
+    uint256 public released;
 
     /**
      * @dev Creates a vesting contract that vests its balance of any ERC20 token to the
@@ -34,21 +35,24 @@ contract TokenVesting is Ownable {
      * of the balance will have vested.
      * @param _beneficiary address of the beneficiary to whom vested tokens are transferred
      * @param _cliff duration in seconds of the cliff in which tokens will begin to vest
-     * @param _duration duration in seconds of the period in which the tokens will vest
      */
     constructor(
         address _beneficiary,
         uint256 _start,
         uint256 _cliff,
-        uint256 _duration
+        uint256 _releaseRate,
+        uint256 _releasedInitially
     ) {
         require(_beneficiary != address(0));
-        require(_cliff <= _duration);
 
         beneficiary = _beneficiary;
-        duration = _duration;
         cliff = _start.add(_cliff);
         start = _start;
+        releaseRate = _releaseRate;
+
+        if (_releasedInitially > 0) {
+            released = _releasedInitially;
+        }
     }
 
     /**
@@ -60,7 +64,7 @@ contract TokenVesting is Ownable {
 
         require(unreleased > 0, "tokens cannot be released");
 
-        released[token] = released[token].add(unreleased);
+        released = released.add(unreleased);
 
         SafeERC20.safeTransfer(IERC20(token), beneficiary, unreleased);
 
@@ -77,7 +81,9 @@ contract TokenVesting is Ownable {
         virtual
         returns (uint256)
     {
-        return vestedAmount(token).sub(released[token]);
+        uint256 vested = vestedAmount(token);
+        if (vested > 0) return vested.sub(released);
+        return 0;
     }
 
     /**
@@ -86,14 +92,16 @@ contract TokenVesting is Ownable {
      */
     function vestedAmount(address token) public view virtual returns (uint256) {
         uint256 currentBalance = IERC20(token).balanceOf(address(this));
-        uint256 totalBalance = currentBalance.add(released[token]);
+        uint256 totalBalance = currentBalance.add(released);
+
+        uint256 monthsGone = (block.timestamp - start) / 60 / 60 / 24 / 30;
 
         if (block.timestamp < cliff) {
             return 0;
-        } else if (block.timestamp >= start.add(duration)) {
-            return totalBalance;
-        } else {
-            return totalBalance.mul(block.timestamp.sub(start)).div(duration);
         }
+
+        uint256 vested = totalBalance.mul(monthsGone * releaseRate).div(100);
+        if (vested > totalBalance) return totalBalance;
+        return vested;
     }
 }

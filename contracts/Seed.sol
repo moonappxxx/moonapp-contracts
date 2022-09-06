@@ -8,16 +8,15 @@ import "./MoonappToken.sol";
 
 contract Seed {
     using SafeMath for uint256;
+    using SafeERC20 for MoonappToken;
 
     address[] public investors;
-
     mapping(address => uint256) public investorTokens;
 
     address public admin;
     uint256 public availableTokens;
-    uint256 public price;
     uint256 public startTime;
-    uint256 public lockDuration;
+
     MoonappToken public token;
 
     constructor(address tokenAddress, uint256 _availableTokens) {
@@ -46,20 +45,19 @@ contract Seed {
             _tokensAmount <= availableTokens,
             "ADD_INVESTOR: not enought tokens left."
         );
-
-        token.mint(address(this), _tokensAmount);
+        require(_tokensAmount > 0, "ADD_INVESTOR: only investors.");
 
         if (investorTokens[_investor] == 0) {
             investors.push(_investor);
+            investorTokens[_investor] = _tokensAmount;
         }
-
-        investorTokens[_investor] = _tokensAmount;
     }
 
     function releaseTokens(
         uint256 _start,
         uint256 _cliff,
-        uint256 _duration
+        uint256 _releaseRate,
+        uint256 _initialReleaseRate
     ) external {
         require(msg.sender == admin, "only admin");
         require(startTime == 0, "tokens already released");
@@ -69,20 +67,19 @@ contract Seed {
 
         for (uint256 i = 0; i < investorsCount; i++) {
             uint256 tokensAmount = investorTokens[investors[i]];
+            uint256 initialReleaseAmont = (tokensAmount / 100) *
+                _initialReleaseRate; // release 10% of the tokens on listing
 
-            if (tokensAmount > 0) {
-                uint256 initialReleaseAmont = (tokensAmount / 100) * 10; // release 10% of the tokens on listing
-                uint256 vestingAmount = tokensAmount.div(initialReleaseAmont);
-                TokenVesting vesting = new TokenVesting(
-                    investors[i],
-                    startTime,
-                    _cliff,
-                    _duration
-                );
+            TokenVesting vesting = new TokenVesting(
+                investors[i],
+                startTime,
+                _cliff,
+                _releaseRate,
+                initialReleaseAmont
+            );
 
-                release(investors[i], initialReleaseAmont);
-                release(address(vesting), vestingAmount);
-            }
+            release(investors[i], initialReleaseAmont);
+            release(address(vesting), tokensAmount);
         }
     }
 
