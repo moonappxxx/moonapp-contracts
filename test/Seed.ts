@@ -48,6 +48,29 @@ describe("Seed", function () {
       const { hardhatSeed } = await loadFixture(deployTokenFixture);
       expect(await hardhatSeed.availableTokens()).to.equal(SEED_AVAILABLE_TOKENS);
     });
+
+    it("Should return proper amount of tokens bought by investor", async function () {
+      const { hardhatSeed, addr1, addr2 } = await loadFixture(deployTokenFixture);
+
+      await hardhatSeed.addInvestor(addr1.address, SEED_AVAILABLE_TOKENS / 2)
+
+      expect(await hardhatSeed.getInvestorBalance(addr1.address)).to.equal(SEED_AVAILABLE_TOKENS / 2);
+      expect(await hardhatSeed.getInvestorBalance(addr2.address)).to.equal(0);
+    });
+
+    it("Should return all investors", async function () {
+      const { hardhatSeed, addr1, addr2 } = await loadFixture(deployTokenFixture);
+
+      await hardhatSeed.addInvestor(addr2.address, SEED_AVAILABLE_TOKENS / 2)
+      await hardhatSeed.addInvestor(addr1.address, Math.floor(SEED_AVAILABLE_TOKENS / 3))
+
+      expect(await hardhatSeed.getInvestors()).to.eql([addr2.address, addr1.address]);
+    });
+
+    it("Should return empty array if there is no investors", async function () {
+      const { hardhatSeed} = await loadFixture(deployTokenFixture);
+      expect(await hardhatSeed.getInvestors()).to.eql([]);
+    });
   });
 
   describe("Governance", function() {
@@ -139,8 +162,8 @@ describe("Seed", function () {
       expect(await hardhatToken.balanceOf(addr1.address)).to.equal(Math.floor(investedAmount * INITIAL_RELEASE_RATE / 100));
     });
 
-    it("Should set correct start time", async function () {
-      const { hardhatSeed, addr1, start, cliff } = await loadFixture(deployTokenFixture);
+    it("Should correctly release tokens", async function () {
+      const { hardhatSeed, addr1, start, cliff, hardhatToken } = await loadFixture(deployTokenFixture);
 
       const investedAmount = 1000;
 
@@ -148,6 +171,12 @@ describe("Seed", function () {
       await hardhatSeed.releaseTokens(start, cliff, RELEASE_RATE, INITIAL_RELEASE_RATE);
       
       expect(await hardhatSeed.startTime()).to.equal(start);
+      
+      const investorVestingAddress = await hardhatSeed.getInvestorVestingAddress(addr1.address);
+      const investorBalance = await hardhatSeed.getInvestorBalance(addr1.address);
+
+      expect(await hardhatToken.balanceOf(investorVestingAddress)).to.equal(investorBalance);
+
     });
 
     it("cannot be released twice", async function () {

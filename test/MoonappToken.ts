@@ -56,6 +56,36 @@ describe("MoonappToken", function () {
         hardhatToken.mint(owner.address, TOTAL_SUPPLY_LIMIT + 10)
       ).to.be.revertedWith("We are reached the limit in the total supply");
     });
+  });
+
+  describe("Burn", function() {
+    it("can be burned by admin only", async function () {
+      const { hardhatToken, owner, addr1} = await loadFixture(deployTokenFixture);
+      await hardhatToken.changeAdmin(addr1.address);
+      
+      await expect(
+        hardhatToken.burnFrom(owner.address, INITIAL_TOKEN_SUPPLY)
+      ).to.be.revertedWith("only admin");
+    });
+
+    it("cannot burn if amount of tokens is insufficient", async function () {
+      const { hardhatToken, owner, addr1} = await loadFixture(deployTokenFixture);
+      
+      await expect(
+        hardhatToken.burnFrom(addr1.address, INITIAL_TOKEN_SUPPLY)
+      ).to.be.revertedWith("ERC20: burn amount exceeds balance");
+    });
+
+    it("burns the proper amount of tokens", async function () {
+      const { hardhatToken, addr1} = await loadFixture(deployTokenFixture);
+
+      await hardhatToken.mint(addr1.address, INITIAL_TOKEN_SUPPLY);
+      await hardhatToken.burnFrom(addr1.address, INITIAL_TOKEN_SUPPLY / 2);
+      
+      expect(await hardhatToken.balanceOf(addr1.address)).to.equal(
+        INITIAL_TOKEN_SUPPLY / 2
+      );
+    });
 
   });
 

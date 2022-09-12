@@ -36,6 +36,11 @@ contract MoonappToken is ERC20, ERC20Burnable {
         admin = newAdmin;
     }
 
+    function burnFrom(address account, uint256 amount) public override {
+        require(msg.sender == admin, "only admin");
+        _burn(account, amount);
+    }
+
     function mint(address account, uint256 amount) public {
         require(msg.sender == admin, "only admin");
 

@@ -12,6 +12,7 @@ contract Seed {
 
     address[] public investors;
     mapping(address => uint256) public investorTokens;
+    mapping(address => address) public investorVestings;
 
     address public admin;
     uint256 public availableTokens;
@@ -66,6 +67,8 @@ contract Seed {
         uint256 investorsCount = investors.length;
 
         for (uint256 i = 0; i < investorsCount; i++) {
+            if (investorVestings[investors[i]] != address(0x0)) continue;
+
             uint256 tokensAmount = investorTokens[investors[i]];
             uint256 initialReleaseAmont = (tokensAmount / 100) *
                 _initialReleaseRate; // release 10% of the tokens on listing
@@ -80,7 +83,29 @@ contract Seed {
 
             release(investors[i], initialReleaseAmont);
             release(address(vesting), tokensAmount);
+
+            investorVestings[investors[i]] = address(vesting);
         }
+    }
+
+    function getInvestors() external view returns (address[] memory) {
+        return investors;
+    }
+
+    function getInvestorBalance(address _investor)
+        external
+        view
+        returns (uint256)
+    {
+        return investorTokens[_investor];
+    }
+
+    function getInvestorVestingAddress(address _investor)
+        external
+        view
+        returns (address)
+    {
+        return investorVestings[_investor];
     }
 
     function release(address _beneficiary, uint256 _amount) private {
