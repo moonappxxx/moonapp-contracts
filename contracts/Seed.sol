@@ -24,7 +24,7 @@ contract Seed {
         token = MoonappToken(tokenAddress);
         admin = msg.sender;
 
-        availableTokens = _availableTokens;
+        availableTokens = _availableTokens * (10**18);
     }
 
     function changeAdmin(address newAdmin) external {
@@ -33,6 +33,7 @@ contract Seed {
     }
 
     function addInvestor(address _investor, uint256 _tokensAmount) external {
+        uint256 amount = _tokensAmount * (10**18);
         require(msg.sender == admin, "only admin");
         require(
             _investor != address(0),
@@ -43,15 +44,13 @@ contract Seed {
             "ADD_INVESTOR: you can add investor only once."
         );
         require(
-            _tokensAmount <= availableTokens,
+            amount <= availableTokens,
             "ADD_INVESTOR: not enought tokens left."
         );
-        require(_tokensAmount > 0, "ADD_INVESTOR: only investors.");
+        require(amount > 0, "ADD_INVESTOR: only investors.");
 
-        if (investorTokens[_investor] == 0) {
-            investors.push(_investor);
-            investorTokens[_investor] = _tokensAmount;
-        }
+        investors.push(_investor);
+        investorTokens[_investor] = amount;
     }
 
     function releaseTokens(
@@ -71,7 +70,7 @@ contract Seed {
 
             uint256 tokensAmount = investorTokens[investors[i]];
             uint256 initialReleaseAmont = (tokensAmount / 100) *
-                _initialReleaseRate; // release 10% of the tokens on listing
+                _initialReleaseRate; // release % of the tokens on listing
 
             TokenVesting vesting = new TokenVesting(
                 investors[i],
@@ -81,8 +80,11 @@ contract Seed {
                 initialReleaseAmont
             );
 
-            release(investors[i], initialReleaseAmont);
-            release(address(vesting), tokensAmount);
+            SafeERC20.safeTransfer(
+                IERC20(token),
+                address(vesting),
+                tokensAmount
+            );
 
             investorVestings[investors[i]] = address(vesting);
         }
@@ -106,9 +108,5 @@ contract Seed {
         returns (address)
     {
         return investorVestings[_investor];
-    }
-
-    function release(address _beneficiary, uint256 _amount) private {
-        SafeERC20.safeTransfer(IERC20(token), _beneficiary, _amount);
     }
 }

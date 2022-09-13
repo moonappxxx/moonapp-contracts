@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 import { expect } from "chai";
 import { loadFixture } from"@nomicfoundation/hardhat-network-helpers";
 
-const TOTAL_SUPPLY_LIMIT = 100000;
+const TOTAL_SUPPLY_LIMIT = 10000;
 const INITIAL_TOKEN_SUPPLY = 1000;
 
 describe("MoonappToken", function () {
@@ -35,7 +35,7 @@ describe("MoonappToken", function () {
 
     it("Should assign the total supply limit", async function () {
       const { hardhatToken } = await loadFixture(deployTokenFixture);
-      expect(await hardhatToken.totalSupplyLimit()).to.equal(TOTAL_SUPPLY_LIMIT);
+      expect(await hardhatToken.totalSupplyLimit()).to.equal(BigInt(TOTAL_SUPPLY_LIMIT * (10 ** 18)));
     });
   });
   
@@ -53,7 +53,7 @@ describe("MoonappToken", function () {
       const { hardhatToken, owner, addr1} = await loadFixture(deployTokenFixture);
       
       await expect(
-        hardhatToken.mint(owner.address, TOTAL_SUPPLY_LIMIT + 10)
+        hardhatToken.mint(owner.address, BigInt(TOTAL_SUPPLY_LIMIT * (10 ** 18) + 10))
       ).to.be.revertedWith("We are reached the limit in the total supply");
     });
   });

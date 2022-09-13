@@ -7,7 +7,7 @@ task("seed-add-investor", "Adds investor to the seed")
   .setAction(async ({ seedAddress, investor, amount }, { ethers }) => {
     const seed = await ethers.getContractAt("Seed", seedAddress);
 
-    const tx = await seed.addInvestor(investor, amount);
+    const tx = await seed.addInvestor(investor, +amount);
     await tx.wait();
 
     console.log(`Welcome new investor ${investor} on board with ${amount} of tokens`);

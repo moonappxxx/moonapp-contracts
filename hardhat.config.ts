@@ -1,6 +1,8 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 
+import "./tasks/faucet";
+import "./tasks/token_mint";
 import "./tasks/seed_add-investor";
 import "./tasks/seed_release-tokens";
 

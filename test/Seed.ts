@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 import { expect } from "chai";
 import { loadFixture, time } from"@nomicfoundation/hardhat-network-helpers";
 
-const TOTAL_SUPPLY_LIMIT = 100000;
+const TOTAL_SUPPLY_LIMIT = 10000;
 const INITIAL_TOKEN_SUPPLY = 0;
 const SEED_AVAILABLE_TOKENS = 5000;
 const ONE_MONTH = 60 * 60 * 24 * 30;
@@ -33,7 +33,7 @@ describe("Seed", function () {
     );
     await hardhatSeed.deployed();
 
-    await hardhatToken.mint(hardhatSeed.address, SEED_AVAILABLE_TOKENS);
+    await hardhatToken.mint(hardhatSeed.address, BigInt(SEED_AVAILABLE_TOKENS * 10 ** 18));
 
     return { MoonappToken, hardhatToken, hardhatSeed, owner, addr1, addr2, start, cliff };
   }
@@ -46,7 +46,7 @@ describe("Seed", function () {
 
     it("Should set the right amount of tokens", async function () {
       const { hardhatSeed } = await loadFixture(deployTokenFixture);
-      expect(await hardhatSeed.availableTokens()).to.equal(SEED_AVAILABLE_TOKENS);
+      expect(await hardhatSeed.availableTokens()).to.equal(BigInt(SEED_AVAILABLE_TOKENS * 10 ** 18));
     });
 
     it("Should return proper amount of tokens bought by investor", async function () {
@@ -54,7 +54,9 @@ describe("Seed", function () {
 
       await hardhatSeed.addInvestor(addr1.address, SEED_AVAILABLE_TOKENS / 2)
 
-      expect(await hardhatSeed.getInvestorBalance(addr1.address)).to.equal(SEED_AVAILABLE_TOKENS / 2);
+      expect(await hardhatSeed.getInvestorBalance(addr1.address)).to.equal(
+        BigInt((SEED_AVAILABLE_TOKENS / 2) * (10 ** 18))
+      );
       expect(await hardhatSeed.getInvestorBalance(addr2.address)).to.equal(0);
     });
 
@@ -135,7 +137,7 @@ describe("Seed", function () {
       // First investor
       await hardhatSeed.addInvestor(addr1.address, 1000);
       const investorTokens = await hardhatSeed.investorTokens(addr1.address);
-      expect(investorTokens).to.equal(1000);
+      expect(investorTokens).to.equal(BigInt(1000 * 10 ** 18));
       
       const investorAddress = await hardhatSeed.investors(0);
       expect(investorAddress).to.equal(addr1.address);
@@ -143,7 +145,7 @@ describe("Seed", function () {
       // Second investor
       await hardhatSeed.addInvestor(addr2.address, 3000);
       const investor2Tokens = await hardhatSeed.investorTokens(addr2.address);
-      expect(investor2Tokens).to.equal(3000);
+      expect(investor2Tokens).to.equal(BigInt(3000 * 10 ** 18));
       
       const investor2Address = await hardhatSeed.investors(1);
       expect(investor2Address).to.equal(addr2.address);
@@ -157,9 +159,9 @@ describe("Seed", function () {
       const investedAmount = 1000;
 
       await hardhatSeed.addInvestor(addr1.address, investedAmount);
-      await hardhatSeed.releaseTokens(start, cliff, RELEASE_RATE, INITIAL_RELEASE_RATE);
+      await hardhatSeed.releaseTokens(start, cliff, RELEASE_RATE, 0);
       
-      expect(await hardhatToken.balanceOf(addr1.address)).to.equal(Math.floor(investedAmount * INITIAL_RELEASE_RATE / 100));
+      expect(await hardhatToken.balanceOf(addr1.address)).to.equal(0);
     });
 
     it("Should correctly release tokens", async function () {
@@ -176,7 +178,6 @@ describe("Seed", function () {
       const investorBalance = await hardhatSeed.getInvestorBalance(addr1.address);
 
       expect(await hardhatToken.balanceOf(investorVestingAddress)).to.equal(investorBalance);
-
     });
 
     it("cannot be released twice", async function () {

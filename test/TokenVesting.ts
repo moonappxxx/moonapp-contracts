@@ -27,7 +27,7 @@ describe("TokenVesting", function () {
     const cliff = ONE_MONTH; // 1 month
     const vestingPeriod = ONE_MONTH;
     const beneficiary = addr1.address;
-    const initialVestingBalance = VESTING_AMOUNT - INITIAL_RELEASE_AMOUNT;
+    const initialVestingBalance = VESTING_AMOUNT;
 
     const hardhatVesting = await TokenVesting.deploy(
       addr1.address, 
@@ -40,7 +40,6 @@ describe("TokenVesting", function () {
     await hardhatToken.deployed();
     await hardhatVesting.deployed();
 
-    await hardhatToken.mint(beneficiary, INITIAL_RELEASE_AMOUNT);
     await hardhatToken.mint(hardhatVesting.address, initialVestingBalance);
     
     return { MoonappToken, hardhatToken, hardhatVesting, owner, cliff, vestingPeriod, start, addr1, addr2, beneficiary, initialVestingBalance };
@@ -59,13 +58,33 @@ describe("TokenVesting", function () {
 
     it("Should set the right initially released amount", async function () {
       const { hardhatVesting } = await loadFixture(deployTokenFixture);
-      expect(await hardhatVesting.released()).to.equal(INITIAL_RELEASE_AMOUNT);
+      expect(await hardhatVesting.releasedInitially()).to.equal(INITIAL_RELEASE_AMOUNT);
+    });
+
+    it("Should return the proper releasable amount", async function () {
+      const { hardhatVesting, hardhatToken } = await loadFixture(deployTokenFixture);
+      expect(await hardhatVesting.releasableAmount(hardhatToken.address)).to.equal(INITIAL_RELEASE_AMOUNT);
+    });
+
+    it("Should return the proper locked amount", async function () {
+      const { hardhatVesting, hardhatToken, initialVestingBalance } = await loadFixture(deployTokenFixture);
+      expect(await hardhatVesting.lockedAmount(hardhatToken.address)).to.equal(initialVestingBalance);
     });
   });
 
   describe("Release", function() {
     it('cannot be released before cliff', async function () {
-      const { hardhatVesting, hardhatToken } = await loadFixture(deployTokenFixture);
+      const { addr1, start, cliff, hardhatToken } = await loadFixture(deployTokenFixture);
+      
+      const TokenVesting = await ethers.getContractFactory("TokenVesting");
+      const hardhatVesting = await TokenVesting.deploy(
+        addr1.address, 
+        start, 
+        cliff, 
+        RELEASE_RATE,
+        0
+      );
+
       await expect(
         hardhatVesting.release(hardhatToken.address)
       ).to.be.revertedWith('tokens cannot be released');
@@ -74,7 +93,7 @@ describe("TokenVesting", function () {
     it('should properly release tokens during vesting period', async function () {
       const { hardhatVesting, hardhatToken, cliff, start, vestingPeriod, beneficiary } = await loadFixture(deployTokenFixture);
       
-      const checkpoints = 7;
+      const checkpoints = 6;
 
       for (let i = 0; i < checkpoints; i++) {
         const now = start + cliff + i * vestingPeriod;
@@ -112,7 +131,7 @@ describe("TokenVesting", function () {
       const balance = await hardhatToken.balanceOf(beneficiary);
       const monthsGone = Math.floor((releaseTime - start) / ONE_MONTH);
 
-      expect(balance).to.equal(Math.floor(VESTING_AMOUNT * (RELEASE_RATE * monthsGone) / 100));
+      expect(balance).to.equal(Math.floor((VESTING_AMOUNT * (RELEASE_RATE * monthsGone) / 100) + INITIAL_RELEASE_AMOUNT));
     });
   });
 });

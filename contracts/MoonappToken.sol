@@ -27,8 +27,8 @@ contract MoonappToken is ERC20, ERC20Burnable {
         uint256 _totalSupplyLimit
     ) ERC20(_name, _symbol) {
         admin = msg.sender;
-        totalSupplyLimit = _totalSupplyLimit;
-        _mint(msg.sender, _initialSupply);
+        totalSupplyLimit = _totalSupplyLimit * (10**18);
+        _mint(msg.sender, _initialSupply * (10**18));
     }
 
     function changeAdmin(address newAdmin) external {

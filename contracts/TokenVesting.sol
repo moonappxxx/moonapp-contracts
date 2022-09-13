@@ -51,7 +51,7 @@ contract TokenVesting is Ownable {
         releaseRate = _releaseRate;
 
         if (_releasedInitially > 0) {
-            released = _releasedInitially;
+            releasedInitially = _releasedInitially;
         }
     }
 
@@ -97,11 +97,22 @@ contract TokenVesting is Ownable {
         uint256 monthsGone = (block.timestamp - start) / 60 / 60 / 24 / 30;
 
         if (block.timestamp < cliff) {
-            return 0;
+            return releasedInitially;
         }
 
-        uint256 vested = totalBalance.mul(monthsGone * releaseRate).div(100);
+        uint256 vested = (totalBalance.mul(monthsGone * releaseRate).div(100))
+            .add(releasedInitially);
+
         if (vested > totalBalance) return totalBalance;
         return vested;
+    }
+
+    /**
+     * @dev Calculates the amount that is locked.
+     * @param token ERC20 token which is being vested
+     */
+    function lockedAmount(address token) public view virtual returns (uint256) {
+        uint256 currentBalance = IERC20(token).balanceOf(address(this));
+        return currentBalance;
     }
 }
