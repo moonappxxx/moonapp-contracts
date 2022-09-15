@@ -94,11 +94,11 @@ contract TokenVesting is Ownable {
         uint256 currentBalance = IERC20(token).balanceOf(address(this));
         uint256 totalBalance = currentBalance.add(released);
 
-        uint256 monthsGone = (block.timestamp - start) / 60 / 60 / 24 / 30;
-
         if (block.timestamp < cliff) {
             return releasedInitially;
         }
+
+        uint256 monthsGone = (block.timestamp - cliff) / 60 / 60 / 24 / 30;
 
         uint256 vested = (totalBalance.mul(monthsGone * releaseRate).div(100))
             .add(releasedInitially);

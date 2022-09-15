@@ -11,7 +11,7 @@ task("seed-release-tokens", "Release tokens")
     
     const currentTimestampInSeconds = Math.round(Date.now() / 1000);
     const start = currentTimestampInSeconds;
-    const cliff = ONE_MONTH;
+    const cliff = ONE_MONTH * 2;
 
     const tx = await seed.releaseTokens(start, cliff, releaseRate, initiallyReleaseRate);
     await tx.wait();

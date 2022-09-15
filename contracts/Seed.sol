@@ -35,6 +35,7 @@ contract Seed {
     function addInvestor(address _investor, uint256 _tokensAmount) external {
         uint256 amount = _tokensAmount * (10**18);
         require(msg.sender == admin, "only admin");
+        require(startTime == 0, "tokens already released");
         require(
             _investor != address(0),
             "ADD_INVESTOR: The investors's address cannot be 0"

@@ -24,7 +24,7 @@ describe("TokenVesting", function () {
     );
 
     const start = await time.latest();
-    const cliff = ONE_MONTH; // 1 month
+    const cliff = ONE_MONTH * 2; // 1 month
     const vestingPeriod = ONE_MONTH;
     const beneficiary = addr1.address;
     const initialVestingBalance = VESTING_AMOUNT;
@@ -70,6 +70,7 @@ describe("TokenVesting", function () {
       const { hardhatVesting, hardhatToken, initialVestingBalance } = await loadFixture(deployTokenFixture);
       expect(await hardhatVesting.lockedAmount(hardhatToken.address)).to.equal(initialVestingBalance);
     });
+
   });
 
   describe("Release", function() {
@@ -129,7 +130,7 @@ describe("TokenVesting", function () {
       const releaseTime = await time.latest();
   
       const balance = await hardhatToken.balanceOf(beneficiary);
-      const monthsGone = Math.floor((releaseTime - start) / ONE_MONTH);
+      const monthsGone = Math.floor((releaseTime - now) / ONE_MONTH);
 
       expect(balance).to.equal(Math.floor((VESTING_AMOUNT * (RELEASE_RATE * monthsGone) / 100) + INITIAL_RELEASE_AMOUNT));
     });

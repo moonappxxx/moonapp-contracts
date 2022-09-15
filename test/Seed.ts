@@ -16,7 +16,7 @@ describe("Seed", function () {
     const [owner, addr1, addr2] = await ethers.getSigners();
 
     const start = await time.latest();
-    const cliff = ONE_MONTH;
+    const cliff = ONE_MONTH * 2;
 
     const hardhatToken = await MoonappToken.deploy(
       'MoonappToken', 
