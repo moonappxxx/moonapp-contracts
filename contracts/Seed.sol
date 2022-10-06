@@ -67,8 +67,6 @@ contract Seed {
         uint256 investorsCount = investors.length;
 
         for (uint256 i = 0; i < investorsCount; i++) {
-            if (investorVestings[investors[i]] != address(0x0)) continue;
-
             uint256 tokensAmount = investorTokens[investors[i]];
             uint256 initialReleaseAmont = (tokensAmount / 100) *
                 _initialReleaseRate; // release % of the tokens on listing

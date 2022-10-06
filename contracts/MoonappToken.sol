@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
+import "./Governed.sol";
+
 /**
  * @title MoonappToken contract
  * @dev This is the implementation of the ERC20 Moonapp Token.
@@ -15,41 +17,36 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
  *
  */
 
-contract MoonappToken is ERC20, ERC20Burnable {
+contract MoonappToken is ERC20, ERC20Burnable, Governed {
     using SafeMath for uint256;
-    address public admin;
     uint256 public totalSupplyLimit;
 
     constructor(
-        string memory _name,
-        string memory _symbol,
+        string memory name_,
+        string memory symbol_,
         uint256 _initialSupply,
         uint256 _totalSupplyLimit
-    ) ERC20(_name, _symbol) {
-        admin = msg.sender;
+    ) ERC20(name_, symbol_) {
+        Governed._initialize(msg.sender);
         totalSupplyLimit = _totalSupplyLimit * (10**18);
         _mint(msg.sender, _initialSupply * (10**18));
     }
 
-    function changeAdmin(address newAdmin) external {
-        require(msg.sender == admin, "only admin");
-        admin = newAdmin;
+    function burnFrom(address _account, uint256 _amount)
+        public
+        override
+        onlyGovernor
+    {
+        _burn(_account, _amount);
     }
 
-    function burnFrom(address account, uint256 amount) public override {
-        require(msg.sender == admin, "only admin");
-        _burn(account, amount);
-    }
-
-    function mint(address account, uint256 amount) public {
-        require(msg.sender == admin, "only admin");
-
-        uint256 totalSupply = totalSupply();
+    function mint(address _account, uint256 _amount) external onlyGovernor {
+        uint256 _totalSupply = totalSupply();
         require(
-            totalSupply.add(amount) <= totalSupplyLimit,
+            _totalSupply.add(_amount) <= totalSupplyLimit,
             "We are reached the limit in the total supply"
         );
 
-        _mint(account, amount);
+        _mint(_account, _amount);
     }
 }

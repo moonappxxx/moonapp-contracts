@@ -22,11 +22,6 @@ describe("MoonappToken", function () {
   }
 
   describe("Deployment", function() {
-    it("Should set the right admin", async function () {
-      const { hardhatToken, owner } = await loadFixture(deployTokenFixture);
-      expect(await hardhatToken.admin()).to.equal(owner.address);
-    });
-
     it("Should assign the total supply of tokens to the owner", async function () {
       const { hardhatToken, owner } = await loadFixture(deployTokenFixture);
       const ownerBalance = await hardhatToken.balanceOf(owner.address);
@@ -42,11 +37,10 @@ describe("MoonappToken", function () {
   describe("Mint", function() {
     it("can be minted by admin only", async function () {
       const { hardhatToken, owner, addr1} = await loadFixture(deployTokenFixture);
-      await hardhatToken.changeAdmin(addr1.address);
       
       await expect(
-        hardhatToken.mint(owner.address, 10)
-      ).to.be.revertedWith("only admin");
+        hardhatToken.connect(addr1).mint(owner.address, 10)
+      ).to.be.revertedWith("Only Governor can call");
     });
 
     it("cannot mint more then total supply limit", async function () {
@@ -61,11 +55,10 @@ describe("MoonappToken", function () {
   describe("Burn", function() {
     it("can be burned by admin only", async function () {
       const { hardhatToken, owner, addr1} = await loadFixture(deployTokenFixture);
-      await hardhatToken.changeAdmin(addr1.address);
       
       await expect(
-        hardhatToken.burnFrom(owner.address, INITIAL_TOKEN_SUPPLY)
-      ).to.be.revertedWith("only admin");
+        hardhatToken.connect(addr1).burnFrom(owner.address, INITIAL_TOKEN_SUPPLY)
+      ).to.be.revertedWith("Only Governor can call");
     });
 
     it("cannot burn if amount of tokens is insufficient", async function () {
