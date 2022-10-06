@@ -44,22 +44,23 @@ contract TokenVesting is Ownable {
         uint256 _releasedInitially
     ) {
         require(_beneficiary != address(0));
+        require(_start > 0);
+        require(_cliff > 0);
+        require(_releasedInitially >= 0);
+        require(_releaseRate > 0 && _releaseRate <= 100);
 
         beneficiary = _beneficiary;
         cliff = _start.add(_cliff);
         start = _start;
         releaseRate = _releaseRate;
-
-        if (_releasedInitially > 0) {
-            releasedInitially = _releasedInitially;
-        }
+        releasedInitially = _releasedInitially;
     }
 
     /**
      * @notice Transfers vested tokens to beneficiary.
      * @param token ERC20 token which is being vested
      */
-    function release(address token) public {
+    function release(address token) external {
         uint256 unreleased = releasableAmount(token);
 
         require(unreleased > 0, "tokens cannot be released");
@@ -98,7 +99,7 @@ contract TokenVesting is Ownable {
             return releasedInitially;
         }
 
-        uint256 monthsGone = (block.timestamp - cliff) / 60 / 60 / 24 / 30;
+        uint256 monthsGone = (block.timestamp - cliff) / (60 * 60 * 24 * 30);
 
         uint256 vested = (totalBalance.mul(monthsGone * releaseRate).div(100))
             .add(releasedInitially);
@@ -111,7 +112,12 @@ contract TokenVesting is Ownable {
      * @dev Calculates the amount that is locked.
      * @param token ERC20 token which is being vested
      */
-    function lockedAmount(address token) public view virtual returns (uint256) {
+    function lockedAmount(address token)
+        external
+        view
+        virtual
+        returns (uint256)
+    {
         uint256 currentBalance = IERC20(token).balanceOf(address(this));
         return currentBalance;
     }

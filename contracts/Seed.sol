@@ -32,16 +32,16 @@ contract Seed {
         admin = newAdmin;
     }
 
-    function addInvestor(address _investor, uint256 _tokensAmount) external {
-        uint256 amount = _tokensAmount * (10**18);
+    function addInvestor(address investor, uint256 tokensAmount) external {
+        uint256 amount = tokensAmount * (10**18);
         require(msg.sender == admin, "only admin");
         require(startTime == 0, "tokens already released");
         require(
-            _investor != address(0),
+            investor != address(0),
             "ADD_INVESTOR: The investors's address cannot be 0"
         );
         require(
-            investorTokens[_investor] == 0,
+            investorTokens[investor] == 0,
             "ADD_INVESTOR: you can add investor only once."
         );
         require(
@@ -50,32 +50,32 @@ contract Seed {
         );
         require(amount > 0, "ADD_INVESTOR: only investors.");
 
-        investors.push(_investor);
-        investorTokens[_investor] = amount;
+        investors.push(investor);
+        investorTokens[investor] = amount;
     }
 
     function releaseTokens(
-        uint256 _start,
-        uint256 _cliff,
-        uint256 _releaseRate,
-        uint256 _initialReleaseRate
+        uint256 start,
+        uint256 cliff,
+        uint256 releaseRate,
+        uint256 initialReleaseRate
     ) external {
         require(msg.sender == admin, "only admin");
         require(startTime == 0, "tokens already released");
-        startTime = _start;
+        startTime = start;
 
         uint256 investorsCount = investors.length;
 
         for (uint256 i = 0; i < investorsCount; i++) {
             uint256 tokensAmount = investorTokens[investors[i]];
-            uint256 initialReleaseAmont = (tokensAmount / 100) *
-                _initialReleaseRate; // release % of the tokens on listing
+            uint256 initialReleaseAmont = (tokensAmount * initialReleaseRate) /
+                100; // release % of the tokens on listing
 
             TokenVesting vesting = new TokenVesting(
                 investors[i],
                 startTime,
-                _cliff,
-                _releaseRate,
+                cliff,
+                releaseRate,
                 initialReleaseAmont
             );
 
