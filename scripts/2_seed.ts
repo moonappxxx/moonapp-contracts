@@ -3,6 +3,8 @@ import { ethers } from "hardhat";
 async function main() {
   const DECIMALS = 18;
 
+  const now = Math.floor(new Date().getTime() / 1000);
+  const ONE_MONTH = 60 * 60 * 24 * 30;
   const TOTAL_SUPPLY_LIMIT = 1500000000;
   const INITIAL_TOKEN_SUPPLY = 0;
   const PRE_SEED_TOKEN_ALLOCATION = 36000000; // 36 mln
@@ -37,6 +39,8 @@ async function main() {
 
   console.log("Transfering tokens to address: ", seed.address);
   await token.mint(seed.address, BigInt(SEED_TOTAL_TOKEN_ALLOCATION * (10 ** DECIMALS)));
+  await token.lockMint(ONE_MONTH + now);
+  await token.lockBurn((ONE_MONTH * 3) + now);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

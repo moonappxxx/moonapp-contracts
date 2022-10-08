@@ -1,9 +1,10 @@
 import { ethers } from "hardhat";
 import { expect } from "chai";
-import { loadFixture } from"@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, time } from"@nomicfoundation/hardhat-network-helpers";
 
 const TOTAL_SUPPLY_LIMIT = 10000;
 const INITIAL_TOKEN_SUPPLY = 1000;
+const ONE_MONTH = 60 * 60 * 24 * 30;
 
 describe("MoonappToken", function () {
   async function deployTokenFixture() {
@@ -37,10 +38,25 @@ describe("MoonappToken", function () {
   describe("Mint", function() {
     it("can be minted by admin only", async function () {
       const { hardhatToken, owner, addr1} = await loadFixture(deployTokenFixture);
-      
+
       await expect(
         hardhatToken.connect(addr1).mint(owner.address, 10)
       ).to.be.revertedWith("Only Governor can call");
+    });
+
+    it("cannot be minted when locked", async function () {
+      const { hardhatToken, addr1} = await loadFixture(deployTokenFixture);
+
+      const now = await time.latest();
+
+      await hardhatToken.lockMint(ONE_MONTH + now);
+      await expect(
+        hardhatToken.lockMint((ONE_MONTH * 2) + now)
+      ).to.be.revertedWith("mint is locked");
+
+      await expect(
+        hardhatToken.mint(addr1.address, 10)
+      ).to.be.revertedWith("mint is locked");
     });
 
     it("cannot mint more then total supply limit", async function () {
@@ -67,6 +83,28 @@ describe("MoonappToken", function () {
       await expect(
         hardhatToken.burnFrom(addr1.address, INITIAL_TOKEN_SUPPLY)
       ).to.be.revertedWith("ERC20: burn amount exceeds balance");
+    });
+
+    it("cannot burn when locked", async function () {
+      const { hardhatToken, addr1 } = await loadFixture(deployTokenFixture);
+
+      const now = await time.latest();
+      await hardhatToken.lockBurn((ONE_MONTH * 3) + now)
+      
+      await expect(
+        hardhatToken.burnFrom(addr1.address, INITIAL_TOKEN_SUPPLY)
+      ).to.be.revertedWith("burn is locked");
+    });
+
+    it("cannot change lock time when locked", async function () {
+      const { hardhatToken } = await loadFixture(deployTokenFixture);
+
+      const now = await time.latest();
+      await hardhatToken.lockBurn((ONE_MONTH * 3) + now)
+      
+      await expect(
+        hardhatToken.lockBurn((ONE_MONTH * 4) + now)
+      ).to.be.revertedWith("burn is locked");
     });
 
     it("burns the proper amount of tokens", async function () {
