@@ -68,58 +68,6 @@ describe("MoonappToken", function () {
     });
   });
 
-  describe("Burn", function() {
-    it("can be burned by admin only", async function () {
-      const { hardhatToken, owner, addr1} = await loadFixture(deployTokenFixture);
-      
-      await expect(
-        hardhatToken.connect(addr1).burnFrom(owner.address, INITIAL_TOKEN_SUPPLY)
-      ).to.be.revertedWith("Only Governor can call");
-    });
-
-    it("cannot burn if amount of tokens is insufficient", async function () {
-      const { hardhatToken, owner, addr1} = await loadFixture(deployTokenFixture);
-      
-      await expect(
-        hardhatToken.burnFrom(addr1.address, INITIAL_TOKEN_SUPPLY)
-      ).to.be.revertedWith("ERC20: burn amount exceeds balance");
-    });
-
-    it("cannot burn when locked", async function () {
-      const { hardhatToken, addr1 } = await loadFixture(deployTokenFixture);
-
-      const now = await time.latest();
-      await hardhatToken.lockBurn((ONE_MONTH * 3) + now)
-      
-      await expect(
-        hardhatToken.burnFrom(addr1.address, INITIAL_TOKEN_SUPPLY)
-      ).to.be.revertedWith("burn is locked");
-    });
-
-    it("cannot change lock time when locked", async function () {
-      const { hardhatToken } = await loadFixture(deployTokenFixture);
-
-      const now = await time.latest();
-      await hardhatToken.lockBurn((ONE_MONTH * 3) + now)
-      
-      await expect(
-        hardhatToken.lockBurn((ONE_MONTH * 4) + now)
-      ).to.be.revertedWith("burn is locked");
-    });
-
-    it("burns the proper amount of tokens", async function () {
-      const { hardhatToken, addr1} = await loadFixture(deployTokenFixture);
-
-      await hardhatToken.mint(addr1.address, INITIAL_TOKEN_SUPPLY);
-      await hardhatToken.burnFrom(addr1.address, INITIAL_TOKEN_SUPPLY / 2);
-      
-      expect(await hardhatToken.balanceOf(addr1.address)).to.equal(
-        INITIAL_TOKEN_SUPPLY / 2
-      );
-    });
-
-  });
-
   describe("Transactions", function () {
     it("Should transfer tokens between accounts", async function () {
       const { hardhatToken, owner, addr1, addr2 } = await loadFixture(
