@@ -18,8 +18,8 @@ async function main() {
   console.log("Deploying token...");
   const MoonappToken = await ethers.getContractFactory("MoonappToken");
   const token = await MoonappToken.deploy(
-    'MoonappToken', 
-    '$XXX', 
+    'MoonApp', 
+    'XXX', 
     INITIAL_TOKEN_SUPPLY, 
     TOTAL_SUPPLY_LIMIT,
   );
@@ -40,7 +40,6 @@ async function main() {
   console.log("Transfering tokens to address: ", seed.address);
   await token.mint(seed.address, BigInt(SEED_TOTAL_TOKEN_ALLOCATION * (10 ** DECIMALS)));
   await token.lockMint(ONE_MONTH + now);
-  await token.lockBurn((ONE_MONTH * 3) + now);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
